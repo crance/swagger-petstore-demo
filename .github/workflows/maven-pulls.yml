@@ -1,9 +1,11 @@
 name: Build Test PR
 
 on:
-  pull_request:
+  # pull_request:
+  #   branches: ["v31"]
+  workflow_dispatch:
     branches: ["v31"]
-
+  
 jobs:
   build:
 

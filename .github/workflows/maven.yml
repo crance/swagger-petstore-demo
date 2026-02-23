@@ -1,7 +1,9 @@
 name: Build Test master
 
 on:
-  push:
+#   push:
+#     branches: ["v31"]
+  workflow_dispatch:
     branches: ["v31"]
 
 jobs:

@@ -1,13 +1,15 @@
 name: "Code scanning - action"
 
 on:
-  push:
+  # push:
+  #   branches: ["v31"]
+  # pull_request:
+  #   # The branches below must be a subset of the branches above
+  #   branches: ["v31"]
+  # schedule:
+  #   - cron: '0 19 * * 1'
+  workflow_dispatch:
     branches: ["v31"]
-  pull_request:
-    # The branches below must be a subset of the branches above
-    branches: ["v31"]
-  schedule:
-    - cron: '0 19 * * 1'
 
 jobs:
   CodeQL-Build:
