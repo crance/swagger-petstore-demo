@@ -9,10 +9,10 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-    strategy:
-      matrix:
-        java: [ 21 ]
-        maven: [ '3.8.8' ]
+    # strategy:
+    #   matrix:
+    #     java: [ 21 ]
+    #     maven: [ '3.8.8' ]
 
     steps:    
       - name: Checkout code
@@ -21,7 +21,8 @@ jobs:
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
-          java-version: ${{ matrix.java }}
+          # java-version: ${{ matrix.java }}
+          java-version: 21
           distribution: temurin
 
       - name: Cache local Maven repository
@@ -44,27 +45,26 @@ jobs:
           SSC_APPVERSION: '${{vars.APPLICATION_NAME}}:${{github.ref_name}}-remediate-${{github.run_id}}'
           SETUP_EXTRA_OPTS: '--issue-template "Prioritized High Risk Issue Template"'
 
-
           DO_APPVERSION_SUMMARY: false
           DO_SAST_EXPORT: false
-
 
           DO_AVIATOR_AUDIT: true
           AVIATOR_URL: ${{ vars.AVIATOR_URL }}
           AVIATOR_TOKEN: ${{ secrets.AVIATOR_TOKEN }}
           AVIATOR_APP: ${{vars.APPLICATION_NAME}}
-          AVIATOR_AUDIT_EXTRA_OPTS: --folder "Critical,High"
+          # AVIATOR_AUDIT_EXTRA_OPTS: --folder "Critical,High" --progress=none
+          AVIATOR_AUDIT_EXTRA_OPTS: --progress=none
 
-      - name: Setup Fortify tools
-        uses: fortify/github-action/setup@v2
-        with:
-          fcli: 3.15.0
+      # - name: Setup Fortify tools
+      #   uses: fortify/github-action/setup@v2
+      #   with:
+      #     fcli: 3.15.0
       
-      - name: SSC session login
-        run: fcli ssc session login --url ${{secrets.SSC_URL}} --token "${{secrets.SSC_TOKEN}}"
+      # - name: SSC session login
+      #   run: fcli ssc session login --url ${{secrets.SSC_URL}} --token "${{secrets.SSC_TOKEN}}"
 
-      - name: aviator session login
-        run: fcli aviator session login --url ${{vars.AVIATOR_URL}} --token "string:${{secrets.AVIATOR_TOKEN}}"
+      # - name: aviator session login
+      #   run: fcli aviator session login --url ${{vars.AVIATOR_URL}} --token "string:${{secrets.AVIATOR_TOKEN}}"
 
       - name: Apply remediations
         run: |
