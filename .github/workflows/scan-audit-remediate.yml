@@ -55,6 +55,9 @@ jobs:
           # AVIATOR_AUDIT_EXTRA_OPTS: --folder "Critical,High" --progress=none
           AVIATOR_AUDIT_EXTRA_OPTS: --progress=none
 
+
+          SSDAST_URL: ${{ secrets.SCDAST_URL }}
+
       # - name: Setup Fortify tools
       #   uses: fortify/github-action/setup@v2
       #   with:
@@ -77,7 +80,7 @@ jobs:
               .id
             ')
           echo "Latest aviator artifact ID: $ARTIFACT_ID"
-          fcli aviator ssc apply-remediations --artifact-id $ARTIFACT_ID
+          "${FCLI_CMD}" aviator ssc apply-remediations --artifact-id $ARTIFACT_ID
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
