@@ -1,4 +1,4 @@
-name: Scan, Audit and Remediate
+name: Audit and Remediate
 
 on:
   workflow_dispatch:
