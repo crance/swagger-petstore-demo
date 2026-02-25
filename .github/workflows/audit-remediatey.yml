@@ -1,0 +1,76 @@
+name: Scan, Audit and Remediate
+
+on:
+  workflow_dispatch:
+
+jobs:
+  fortify-ast:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    # strategy:
+    #   matrix:
+    #     java: [ 21 ]
+    #     maven: [ '3.8.8' ]
+
+    steps:    
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          # java-version: ${{ matrix.java }}
+          java-version: 21
+          distribution: temurin
+
+      - name: Cache local Maven repository
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-# Set up build tool(s) required to build your project
+
+      - name: Setup Fortify tools
+        uses: fortify/github-action/setup@v2
+        with:
+          fcli: 3.15.0
+      
+      - name: SSC session login
+        run: fcli ssc session login --url ${{secrets.SSC_URL}} --token "${{secrets.SSC_TOKEN}}"
+
+      - name: aviator session login
+        run: fcli aviator session login --url ${{vars.AVIATOR_URL}} --token "string:${{secrets.AVIATOR_TOKEN}}"
+
+      - name: Create app version in SSC
+        run: fcli ssc appversion create --copy-from "${{vars.APPLICATION_NAME}}:${{vars.VERSION_NAME}}" "${{vars.APPLICATION_NAME}}:${{github.ref_name}}-remediate-${{github.run_id}}" 
+
+      - name: aviator audit
+        run: aviator ssc audit --av "${{vars.APPLICATION_NAME}}:${{github.ref_name}}-remediate-${{github.run_id}}" --app "${{vars.APPLICATION_NAME}}"
+
+      - name: Apply remediations
+        run: |
+          ARTIFACT_ID=$(fcli ssc artifact ls --av "${{vars.APPLICATION_NAME}}:${{github.ref_name}}-remediate-${{github.run_id}}" --output json | 
+            jq -r '
+              [.[] | select(.originalFileName | startswith("aviator_"))] | 
+              sort_by(.uploadDate) | 
+              last | 
+              .id
+            ')
+          echo "Latest aviator artifact ID: $ARTIFACT_ID"
+          fcli aviator ssc apply-remediations --artifact-id $ARTIFACT_ID --progress=none
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: 'auto-remediation by OpenText SAST Aviator'
+          branch: aviator/audit-remediate-${{github.run_id}}
+          delete-branch: true
+          title: 'Remediation of security issues detected by OpenText SAST'
+          body: |
+            Remediation of security issues detected by OpenText SAST.
+            This PR was automatically created by OpenText SAST Aviator.
+            Please review carefully before merging.
