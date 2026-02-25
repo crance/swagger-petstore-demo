@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  audit_and_remediate:
+  scan-audit_and_remediate:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -13,7 +13,32 @@ jobs:
     steps:    
       - name: Checkout code
         uses: actions/checkout@v4
-        
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ matrix.java }}
+          distribution: temurin
+
+      - name: Cache local Maven repository
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-# Set up build tool(s) required to build your project
+
+      - uses: fortify/github-action@v3
+        env:
+          SSC_URL: ${{ vars.SSC_URL }}
+          SSC_TOKEN: ${{ secrets.SSC_TOKEN }}
+          SC_SAST_TOKEN: ${{ secrets.SC_SAST_TOKEN }}
+          SSC_LOGIN_EXTRA_OPTS: --sc-sast-url ${{ secrets.SCSAST_URL }}
+
+          FCLI_BOOTSTRAP_VERSION: v3.15.0
+
+          SSC_APPVERSION: ${{vars.APPLICATION_NAME}}:${{vars.VERSION_NAME}}
+
       - name: Setup Fortify tools
         uses: fortify/github-action/setup@v2
         with:
@@ -26,7 +51,7 @@ jobs:
         run: fcli aviator session login --url ${{vars.AVIATOR_URL}} --token "${{secrets.AVIATOR_TOKEN}}"
 
       - name: Run SAST Aviator audit
-        run: fcli aviator ssc audit --av "${{vars.APPLICATION_NAME}}:${{vars.VERSION_NAME}}" --app "${{vars.APPLICATION_NAME}}" --progress=none
+        run: fcli aviator ssc audit --av "${{vars.APPLICATION_NAME}}:${{vars.VERSION_NAME}}" --app "${{vars.APPLICATION_NAME}}" --folder "Critical,High" --progress=none
 
       - name: Apply remediations
         run: |
