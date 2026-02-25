@@ -45,7 +45,19 @@ jobs:
         run: fcli aviator session login --url ${{vars.AVIATOR_URL}} --token "string:${{secrets.AVIATOR_TOKEN}}"
 
       - name: Create app version in SSC
-        run: fcli ssc appversion create --copy-from "${{vars.APPLICATION_NAME}}:${{vars.VERSION_NAME}}" "${{vars.APPLICATION_NAME}}:${{github.ref_name}}-remediate-${{github.run_id}}" 
+        run: fcli ssc appversion create --copy-from "${{vars.APPLICATION_NAME}}:${{vars.VERSION_NAME}}" --skip-if-exists "${{vars.APPLICATION_NAME}}:${{github.ref_name}}-remediate-${{github.run_id}}" 
+
+      - name: Wait for artifact processing
+        run: |
+          ARTIFACT_ID=$(fcli ssc artifact ls --av "${{vars.APPLICATION_NAME}}:${{vars.VERSION_NAME}}" --output json | 
+            jq -r '
+              sort_by(.uploadDate) | 
+              last | 
+              .id
+            ')
+          echo "Latest artifact ID: $ARTIFACT_ID"
+          fcli ssc artifact wait-for --progress=none $ARTIFACT_ID 
+
 
       - name: aviator audit
         run: fcli aviator ssc audit --av "${{vars.APPLICATION_NAME}}:${{github.ref_name}}-remediate-${{github.run_id}}" --app "${{vars.APPLICATION_NAME}}"
