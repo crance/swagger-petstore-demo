@@ -58,16 +58,16 @@ jobs:
 
           SSDAST_URL: ${{ secrets.SCDAST_URL }}
 
-      # - name: Setup Fortify tools
-      #   uses: fortify/github-action/setup@v2
-      #   with:
-      #     fcli: 3.15.0
+      - name: Setup Fortify tools
+        uses: fortify/github-action/setup@v2
+        with:
+          fcli: 3.15.0
       
-      # - name: SSC session login
-      #   run: fcli ssc session login --url ${{secrets.SSC_URL}} --token "${{secrets.SSC_TOKEN}}"
+      - name: SSC session login
+        run: fcli ssc session login --url ${{secrets.SSC_URL}} --token "${{secrets.SSC_TOKEN}}"
 
-      # - name: aviator session login
-      #   run: fcli aviator session login --url ${{vars.AVIATOR_URL}} --token "string:${{secrets.AVIATOR_TOKEN}}"
+      - name: aviator session login
+        run: fcli aviator session login --url ${{vars.AVIATOR_URL}} --token "string:${{secrets.AVIATOR_TOKEN}}"
 
       - name: Apply remediations
         run: |
@@ -80,7 +80,7 @@ jobs:
               .id
             ')
           echo "Latest aviator artifact ID: $ARTIFACT_ID"
-          "${FCLI_CMD}" aviator ssc apply-remediations --artifact-id $ARTIFACT_ID
+          fcli aviator ssc apply-remediations --artifact-id $ARTIFACT_ID
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
