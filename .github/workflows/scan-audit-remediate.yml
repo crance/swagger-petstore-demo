@@ -42,6 +42,7 @@ jobs:
           SSC_LOGIN_EXTRA_OPTS: --sc-sast-url ${{ secrets.SCSAST_URL }}
           # SSC_APPVERSION: ${{vars.APPLICATION_NAME}}:${{vars.VERSION_NAME}}
           SSC_APPVERSION: '${{vars.APPLICATION_NAME}}:${{github.ref_name}}-remediate-${{github.run_id}}'
+          SETUP_EXTRA_OPTS: '--issue-template "Prioritized High Risk Issue Template"'
 
 
           DO_APPVERSION_SUMMARY: false
