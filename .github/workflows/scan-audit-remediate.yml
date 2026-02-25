@@ -45,7 +45,7 @@ jobs:
           SSC_APPVERSION: '${{vars.APPLICATION_NAME}}:${{github.ref_name}}-remediate-${{github.run_id}}'
           SETUP_EXTRA_OPTS: '--issue-template "Prioritized High Risk Issue Template"'
 
-          PACKAGE_ACTION_EXTRA_OPTS: --build-command --no-transfer-progress
+          PACKAGE_EXTRA_OPTS: --build-command "--no-transfer-progress"
 
           DO_APPVERSION_SUMMARY: false
           DO_SAST_EXPORT: false
