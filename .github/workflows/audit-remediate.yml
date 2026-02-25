@@ -4,13 +4,16 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  audit_and_remediate:
     runs-on: ubuntu-latest
     permissions:
       contents: write
       pull-requests: write
 
     steps:    
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
       - name: Setup Fortify tools
         uses: fortify/github-action/setup@v2
         with:
