@@ -40,7 +40,8 @@ jobs:
           SSC_TOKEN: ${{ secrets.SSC_TOKEN }}
           SC_SAST_TOKEN: ${{ secrets.SC_SAST_TOKEN }}
           SSC_LOGIN_EXTRA_OPTS: --sc-sast-url ${{ secrets.SCSAST_URL }}
-          SSC_APPVERSION: ${{vars.APPLICATION_NAME}}:${{vars.VERSION_NAME}}
+          # SSC_APPVERSION: ${{vars.APPLICATION_NAME}}:${{vars.VERSION_NAME}}
+          SSC_APPVERSION: '${{vars.APPLICATION_NAME}}:${{github.ref_name}}-remediate-${{github.run_id}}'
 
 
           DO_APPVERSION_SUMMARY: false
@@ -62,11 +63,12 @@ jobs:
         run: fcli ssc session login --url ${{secrets.SSC_URL}} --token "${{secrets.SSC_TOKEN}}"
 
       - name: aviator session login
-        run: fcli aviator session login --url ${{vars.AVIATOR_URL}} --token "${{secrets.AVIATOR_TOKEN}}"
+        run: fcli aviator session login --url ${{vars.AVIATOR_URL}} --token "env:${{secrets.AVIATOR_TOKEN}}"
 
       - name: Apply remediations
         run: |
-          ARTIFACT_ID=$(fcli ssc artifact ls --av "${{vars.APPLICATION_NAME}}:${{vars.VERSION_NAME}}" --output json | 
+          # ARTIFACT_ID=$(fcli ssc artifact ls --av "${{vars.APPLICATION_NAME}}:${{vars.VERSION_NAME}}" --output json | 
+          ARTIFACT_ID=$(fcli ssc artifact ls --av "${{vars.APPLICATION_NAME}}:${{github.ref_name}}-remediate-${{github.run_id}}" --output json | 
             jq -r '
               [.[] | select(.originalFileName | startswith("aviator_"))] | 
               sort_by(.uploadDate) | 
