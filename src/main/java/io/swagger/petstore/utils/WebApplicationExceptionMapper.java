@@ -12,9 +12,16 @@ public class WebApplicationExceptionMapper implements ExceptionMapper<WebApplica
         String message = exception.getMessage();
         Response response = exception.getResponse();
         Response.Status status = response.getStatusInfo().toEnum();
-
+        
+        // Log the actual exception for debugging purposes
+        java.util.logging.Logger.getLogger(WebApplicationExceptionMapper.class.getName())
+            .log(java.util.logging.Level.WARNING, "WebApplicationException occurred", exception);
+        
+        // Return a generic error message to the client
+        String safeMessage = "An error occurred while processing your request";
+        
         return Response.status(status)
-                .entity(status + ": " + message)
+                .entity(status + ": " + safeMessage)
                 .type(MediaType.TEXT_PLAIN)
                 .build();
     }
