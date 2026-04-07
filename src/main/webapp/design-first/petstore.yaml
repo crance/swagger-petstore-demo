@@ -20,6 +20,10 @@ externalDocs:
   url: https://swagger.io
 servers:
   - url: /api/v31
+security:
+  - petstore_auth:
+      - write:pets
+      - read:pets
 tags:
   - name: pet
     description: Everything about your Pets
