@@ -2,6 +2,20 @@ name: Scan, Audit and Remediate
 
 on:
   workflow_dispatch:
+    inputs:
+      platform:
+        description: Fortify platform
+        required: true
+        type: choice
+        default: SSC
+        options:
+          - SSC
+          - FoD
+      fcli_version:
+        description: fcli version
+        required: true
+        type: string
+        default: 3.17.0
 
 jobs:
   fortify-ast:
@@ -9,6 +23,10 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+    env:
+      SSC_APPVERSION: '${{ vars.SSC_APPLICATION_NAME }}:${{ github.ref_name }}-remediate-${{ github.run_id }}'
+      FOD_RELEASE: '${{ vars.FOD_APPLICATION_NAME }}:${{ github.ref_name }}-remediate-${{ github.run_id }}'
+      AVIATOR_APP: ${{ vars.AVIATOR_APP_NAME }}
     # strategy:
     #   matrix:
     #     java: [ 21 ]
@@ -34,16 +52,16 @@ jobs:
             ${{ runner.os }}-maven-# Set up build tool(s) required to build your project
 
       - uses: fortify/github-action@v3
+        if: ${{ inputs.platform == 'SSC' }}
         env:
-          FCLI_BOOTSTRAP_VERSION: v3.15.0
+          FCLI_BOOTSTRAP_VERSION: v${{ inputs.fcli_version }}
 
           SSC_URL: ${{ secrets.SSC_URL }}
           SSC_TOKEN: ${{ secrets.SSC_TOKEN }}
           SC_SAST_TOKEN: ${{ secrets.SC_SAST_TOKEN }}
           SSC_LOGIN_EXTRA_OPTS: --sc-sast-url ${{ secrets.SCSAST_URL }}
-          # SSC_APPVERSION: ${{vars.APPLICATION_NAME}}:${{vars.VERSION_NAME}}
-          SSC_APPVERSION: '${{vars.APPLICATION_NAME}}:${{github.ref_name}}-remediate-${{github.run_id}}'
-          SETUP_EXTRA_OPTS: '--issue-template "Prioritized High Risk Issue Template" --copy-from "${{vars.APPLICATION_NAME}}:${{vars.VERSION_NAME}}"' 
+          SSC_APPVERSION: ${{ env.SSC_APPVERSION }}
+          SETUP_EXTRA_OPTS: '--issue-template "Prioritized High Risk Issue Template" --copy-from "${{vars.SSC_APPLICATION_NAME}}:${{vars.SSC_VERSION_NAME}}"' 
 
           PACKAGE_EXTRA_OPTS: --build-command "--no-transfer-progress"
 
@@ -53,36 +71,53 @@ jobs:
           DO_AVIATOR_AUDIT: true
           AVIATOR_URL: ${{ vars.AVIATOR_URL }}
           AVIATOR_TOKEN: ${{ secrets.AVIATOR_TOKEN }}
-          AVIATOR_APP: ${{vars.APPLICATION_NAME}}
+          AVIATOR_APP: ${{ env.AVIATOR_APP }}
           # AVIATOR_AUDIT_EXTRA_OPTS: --folder "Critical,High" --progress=none
           AVIATOR_AUDIT_EXTRA_OPTS: --progress=none
 
 
           SSDAST_URL: ${{ secrets.SCDAST_URL }}
 
+      - uses: fortify/github-action@v3
+        if: ${{ inputs.platform == 'FoD' }}
+        env:
+          FCLI_BOOTSTRAP_VERSION: v${{ inputs.fcli_version }}
+
+          FOD_URL: ${{ vars.FOD_URL }}
+          FOD_CLIENT_ID: ${{ secrets.FOD_API_KEY }}
+          FOD_CLIENT_SECRET: ${{ secrets.FOD_API_SECRET }}
+          FOD_RELEASE: ${{ env.FOD_RELEASE }}
+          SETUP_EXTRA_OPTS: '--copy-from "${{vars.FOD_APPLICATION_NAME}}:${{vars.FOD_RELEASE_NAME}}"'
+
+          PACKAGE_EXTRA_OPTS: --build-command "--no-transfer-progress"
+
+          DO_AVIATOR_AUDIT: true
+
       - name: Setup Fortify tools
         uses: fortify/github-action/setup@v2
         with:
-          fcli: 3.15.0
+          fcli: ${{ inputs.fcli_version }}
       
       - name: SSC session login
+        if: ${{ inputs.platform == 'SSC' }}
         run: fcli ssc session login --url ${{secrets.SSC_URL}} --token "${{secrets.SSC_TOKEN}}"
 
-      - name: aviator session login
+      - name: Aviator session login
+        if: ${{ inputs.platform == 'SSC' }}
         run: fcli aviator session login --url ${{vars.AVIATOR_URL}} --token "string:${{secrets.AVIATOR_TOKEN}}"
 
-      - name: Apply remediations
-        run: |
-          ARTIFACT_ID=$(fcli ssc artifact ls --av "${{vars.APPLICATION_NAME}}:${{github.ref_name}}-remediate-${{github.run_id}}" --output json | 
-            jq -r '
-              [.[] | select(.originalFileName | startswith("aviator_"))] | 
-              sort_by(.uploadDate) | 
-              last | 
-              .id
-            ')
-          echo "Latest aviator artifact ID: $ARTIFACT_ID"
-          fcli aviator ssc apply-remediations --artifact-id $ARTIFACT_ID --progress=none
+      - name: FoD session login
+        if: ${{ inputs.platform == 'FoD' }}
+        run: fcli fod session login --url "${{ vars.FOD_URL }}" --client-id "${{ secrets.FOD_API_KEY }}" --client-secret "${{ secrets.FOD_API_SECRET }}"
 
+      - name: Apply remediations (SSC)
+        if: ${{ inputs.platform == 'SSC' }}
+        run: fcli aviator ssc apply-remediations --av "$SSC_APPVERSION" --latest --progress=none
+
+      - name: Apply remediations (FoD)
+        if: ${{ inputs.platform == 'FoD' }}
+        run: fcli fod aviator apply-remediations --rel "$FOD_RELEASE" --progress=none
+        
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
         with:
@@ -94,4 +129,6 @@ jobs:
           body: |
             Remediation of security issues detected by OpenText SAST.
             This PR was automatically created by OpenText SAST Aviator.
+            Platform: ${{ inputs.platform }}
+            Target: ${{ inputs.platform == 'SSC' && env.SSC_APPVERSION || env.FOD_RELEASE }}
             Please review carefully before merging.

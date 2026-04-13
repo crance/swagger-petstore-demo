@@ -1,0 +1,71 @@
+name: Remediate
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: Fortify platform
+        required: true
+        type: choice
+        default: SSC
+        options:
+          - SSC
+          - FoD
+      fcli_version:
+        description: fcli version
+        required: true
+        type: string
+        default: 3.17.0
+
+jobs:
+  fortify-remediate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      SSC_APPVERSION: ${{ vars.SSC_APPLICATION_NAME }}:${{ vars.SSC_VERSION_NAME }}
+      FOD_RELEASE: ${{ vars.FOD_APPLICATION_NAME }}:${{ vars.FOD_RELEASE_NAME }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Fortify tools
+        uses: fortify/github-action/setup@v2
+        with:
+          fcli: ${{ inputs.fcli_version }}
+
+      - name: SSC session login
+        if: ${{ inputs.platform == 'SSC' }}
+        run: fcli ssc session login --url ${{secrets.SSC_URL}} --token "${{secrets.SSC_TOKEN}}"
+
+      - name: Aviator session login
+        if: ${{ inputs.platform == 'SSC' }}
+        run: fcli aviator session login --url ${{vars.AVIATOR_URL}} --token "string:${{secrets.AVIATOR_TOKEN}}"
+
+      - name: FoD session login
+        if: ${{ inputs.platform == 'FoD' }}
+        run: fcli fod session login --url "${{ vars.FOD_URL }}" --client-id "${{ secrets.FOD_API_KEY }}" --client-secret "${{ secrets.FOD_API_SECRET }}"
+
+      - name: Apply remediations (SSC)
+        if: ${{ inputs.platform == 'SSC' }}
+        run: fcli aviator ssc apply-remediations --av "$SSC_APPVERSION" --latest --progress=none
+
+      - name: Apply remediations (FoD)
+        if: ${{ inputs.platform == 'FoD' }}
+        run: fcli fod aviator apply-remediations --rel "$FOD_RELEASE" --progress=none
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: 'auto-remediation by OpenText SAST Aviator'
+          branch: aviator/remediate-${{github.run_id}}
+          delete-branch: true
+          title: 'Remediation of security issues detected by OpenText SAST'
+          body: |
+            Remediation of security issues detected by OpenText SAST.
+            This PR was automatically created by OpenText SAST Aviator.
+            Platform: ${{ inputs.platform }}
+            Target: ${{ inputs.platform == 'SSC' && env.SSC_APPVERSION || env.FOD_RELEASE }}
