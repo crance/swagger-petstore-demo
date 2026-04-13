@@ -16,6 +16,16 @@ on:
         required: true
         type: string
         default: 3.17.0
+      ssc_version_name:
+        description: SSC version name (optional override)
+        required: false
+        type: string
+        default: v3
+      fod_release_name:
+        description: FoD release name (optional override)
+        required: false
+        type: string
+        default: v3
 
 jobs:
   fortify-remediate:
@@ -24,8 +34,10 @@ jobs:
       contents: write
       pull-requests: write
     env:
-      SSC_APPVERSION: ${{ vars.SSC_APPLICATION_NAME }}:${{ vars.SSC_VERSION_NAME }}
-      FOD_RELEASE: ${{ vars.FOD_APPLICATION_NAME }}:${{ vars.FOD_RELEASE_NAME }}
+      SSC_APPLICATION_NAME: petstore
+      SSC_VERSION_NAME: ${{ inputs.ssc_version_name || 'v3' }}
+      FOD_APPLICATION_NAME: petstore
+      FOD_RELEASE_NAME: ${{ inputs.fod_release_name || 'v3' }}
 
     steps:
       - name: Checkout code
@@ -50,11 +62,11 @@ jobs:
 
       - name: Apply remediations (SSC)
         if: ${{ inputs.platform == 'SSC' }}
-        run: fcli aviator ssc apply-remediations --av "$SSC_APPVERSION" --latest --progress=none
+        run: fcli aviator ssc apply-remediations --av "$SSC_APPLICATION_NAME:$SSC_VERSION_NAME" --latest --progress=none
 
       - name: Apply remediations (FoD)
         if: ${{ inputs.platform == 'FoD' }}
-        run: fcli fod aviator apply-remediations --rel "$FOD_RELEASE" --progress=none
+        run: fcli fod aviator apply-remediations --rel "$FOD_APPLICATION_NAME:$FOD_RELEASE_NAME" --progress=none
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
@@ -68,4 +80,4 @@ jobs:
             Remediation of security issues detected by OpenText SAST.
             This PR was automatically created by OpenText SAST Aviator.
             Platform: ${{ inputs.platform }}
-            Target: ${{ inputs.platform == 'SSC' && env.SSC_APPVERSION || env.FOD_RELEASE }}
+            Target: ${{ inputs.platform == 'SSC' && format('{0}:{1}', env.SSC_APPLICATION_NAME, env.SSC_VERSION_NAME) || format('{0}:{1}', env.FOD_APPLICATION_NAME, env.FOD_RELEASE_NAME) }}
