@@ -6,6 +6,12 @@ spec:
     platform:
       default: 'SSC'
       description: 'Fortify platform to remediate (SSC or FoD)'
+    ssc-version-name:
+      default: 'v3'
+      description: 'SSC version name (optional override)'
+    fod-release-name:
+      default: 'v3'
+      description: 'FoD release name (optional override)'
 ---
 workflow:
   rules:
