@@ -19,7 +19,11 @@
     "description" : "Find out more about Swagger",
     "url" : "https://swagger.io"
   },
-  "servers" : [ {
+  } ],
+  "security" : [ {
+    "petstore_auth" : [ "write:pets", "read:pets" ]
+  } ],
+  "tags" : [ {
     "url" : "/api/v31"
   } ],
   "tags" : [ {
@@ -335,11 +339,14 @@
       "petstore_auth" : {
         "type" : "oauth2",
         "flows" : {
-          "implicit" : {
+          "authorizationCode" : {
             "authorizationUrl" : "https://petstore31.swagger.io/oauth/authorize",
+            "tokenUrl" : "https://petstore31.swagger.io/oauth/token",
             "scopes" : {
               "write:pets" : "modify pets in your account",
               "read:pets" : "read your pets"
+            }
+          }
             }
           }
         }
