@@ -46,15 +46,15 @@ variables:
 
 fortify-remediate:
   stage: remediate
-  image: maven:3-openjdk-21
+  image: maven:3-eclipse-temurin-21
   needs:
     - job: fcli-prepare
       artifacts: true
   rules:
     - if: '$PLATFORM == "SSC"'
-      when: manual
+      when: on_success
     - if: '$PLATFORM == "FoD"'
-      when: manual
+      when: on_success
     - when: never
   script:
     - |
