@@ -88,7 +88,7 @@ jobs:
           FOD_URL: ${{ vars.FOD_URL }}
           FOD_CLIENT_ID: ${{ secrets.FOD_API_KEY }}
           FOD_CLIENT_SECRET: ${{ secrets.FOD_API_SECRET }}
-          FOD_RELEASE: ${{ env.FOD_RELEASE }}
+          FOD_RELEASE: ${{ format('{0}:{1}', env.FOD_APPLICATION_NAME, env.FOD_RELEASE_NAME) }}
 
           PACKAGE_EXTRA_OPTS: --build-command "--no-transfer-progress"
 
