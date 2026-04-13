@@ -92,6 +92,9 @@ jobs:
 
           PACKAGE_EXTRA_OPTS: --build-command "--no-transfer-progress"
 
+          DO_RELEASE_SUMMARY: false
+          DO_SAST_EXPORT: false
+
           DO_AVIATOR_AUDIT: true
 
       - name: Setup Fortify tools
