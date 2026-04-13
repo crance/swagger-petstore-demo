@@ -61,7 +61,7 @@ jobs:
           SC_SAST_TOKEN: ${{ secrets.SC_SAST_TOKEN }}
           SSC_LOGIN_EXTRA_OPTS: --sc-sast-url ${{ secrets.SCSAST_URL }}
           SSC_APPVERSION: ${{ env.SSC_APPVERSION }}
-          SETUP_EXTRA_OPTS: '--issue-template "Prioritized High Risk Issue Template" --copy-from "${{vars.SSC_APPLICATION_NAME}}:${{vars.SSC_VERSION_NAME}}"' 
+          SETUP_EXTRA_OPTS: '--issue-template "Prioritized High Risk Issue Template"' 
 
           PACKAGE_EXTRA_OPTS: --build-command "--no-transfer-progress"
 
@@ -87,7 +87,6 @@ jobs:
           FOD_CLIENT_ID: ${{ secrets.FOD_API_KEY }}
           FOD_CLIENT_SECRET: ${{ secrets.FOD_API_SECRET }}
           FOD_RELEASE: ${{ env.FOD_RELEASE }}
-          SETUP_EXTRA_OPTS: '--copy-from "${{vars.FOD_APPLICATION_NAME}}:${{vars.FOD_RELEASE_NAME}}"'
 
           PACKAGE_EXTRA_OPTS: --build-command "--no-transfer-progress"
 
