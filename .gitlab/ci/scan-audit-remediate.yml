@@ -1,0 +1,122 @@
+spec:
+  inputs:
+    fcli-version:
+      default: 'v3.17.0'
+      description: 'Fortify fcli version to use (for example: v3.17.0, v3.17, v3)'
+    platform:
+      default: 'SSC'
+      description: 'Fortify platform for scan/audit/remediation (SSC or FoD)'
+---
+
+include:
+  - component: $CI_SERVER_FQDN/Fortify/components/fcli/linux@2
+    inputs:
+      job-name: fcli
+      stage: prepare
+      fcli-version: $[[ inputs.fcli-version ]]
+  - component: $CI_SERVER_FQDN/Fortify/components/ast-scan/linux@1
+    inputs:
+      job-name: fortify-ast-scan
+      stage: scan
+      fcli-version: $[[ inputs.fcli-version ]]
+
+stages: [prepare, scan, remediate]
+
+variables:
+  PLATFORM: $[[ inputs.platform ]]
+  SSC_APPLICATION_NAME: petstore
+  SSC_VERSION_NAME: "$CI_COMMIT_REF_NAME-remediate-$CI_PIPELINE_ID"
+  SSC_APPVERSION: "$SSC_APPLICATION_NAME:$SSC_VERSION_NAME"
+  FOD_APPLICATION_NAME: petstore
+  FOD_RELEASE_NAME: "$CI_COMMIT_REF_NAME-remediate-$CI_PIPELINE_ID"
+  FOD_RELEASE: "$FOD_APPLICATION_NAME:$FOD_RELEASE_NAME"
+  AVIATOR_APP: 'petstore'
+
+# NOTE:
+# This pipeline uses CI_JOB_TOKEN for Git push and MR creation (via push options).
+# To allow this, enable project setting:
+# Settings > CI/CD > Job token permissions > Allow Git push requests to the repository.
+
+.git-push-mr: &git-push-mr
+  - git config user.name "${GITLAB_USER_NAME:-gitlab-ci}"
+  - git config user.email "${GITLAB_USER_EMAIL:-gitlab-ci@example.com}"
+  - git checkout -b "aviator/remediate-${CI_PIPELINE_ID}"
+  - git add -A
+  - |
+    if git diff --cached --quiet; then
+      echo "No remediation changes detected; skipping commit/push/MR creation."
+      exit 0
+    fi
+    git commit -m "auto-remediation by OpenText SAST Aviator"
+    git push --set-upstream \
+      -o merge_request.create \
+      -o merge_request.target="${CI_DEFAULT_BRANCH}" \
+      -o merge_request.title="Remediation of security issues detected by OpenText SAST" \
+      -o merge_request.remove_source_branch \
+      "https://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git" \
+      "aviator/remediate-${CI_PIPELINE_ID}"
+
+fortify-ast-scan:
+  image: maven:3-eclipse-temurin-21
+  rules:
+    - if: '$PLATFORM == "SSC"'
+      when: on_success
+      variables:
+        SSC_URL: $SSC_URL
+        SSC_TOKEN: $SSC_TOKEN
+        SC_SAST_TOKEN: $SC_SAST_TOKEN
+        SSC_APPVERSION: "$SSC_APPVERSION"
+        SETUP_EXTRA_OPTS: '--issue-template "Prioritized High Risk Issue Template"'
+        PACKAGE_EXTRA_OPTS: '--build-command "--no-transfer-progress"'
+        
+        DO_APPVERSION_SUMMARY: 'false'
+        DO_SAST_EXPORT: false
+
+        DO_AVIATOR_AUDIT: 'true'
+        AVIATOR_URL: $AVIATOR_URL
+        AVIATOR_TOKEN: $AVIATOR_TOKEN
+        AVIATOR_APP: $AVIATOR_APP
+        # AVIATOR_AUDIT_EXTRA_OPTS: --folder "Critical,High" --progress=none
+        AVIATOR_AUDIT_EXTRA_OPTS: --progress=none
+        
+    - if: '$PLATFORM == "FoD"'
+      when: on_success
+      variables:
+        FOD_URL: $FOD_URL
+        FOD_CLIENT_ID: $FOD_API_KEY
+        FOD_CLIENT_SECRET: $FOD_API_SECRET
+        FOD_RELEASE: "$FOD_RELEASE"
+        
+        PACKAGE_EXTRA_OPTS: '--build-command "--no-transfer-progress"'
+
+        DO_AVIATOR_AUDIT: 'true'
+    - when: never
+
+apply-remediations:
+  stage: remediate
+  image: maven:3-eclipse-temurin-21
+  needs:
+    - job: fortify-ast-scan
+      artifacts: true
+    - job: fcli-prepare
+      artifacts: true
+  rules:
+    - if: '$PLATFORM == "SSC"'
+      when: on_success
+    - if: '$PLATFORM == "FoD"'
+      when: on_success
+    - when: never
+  script:
+    - |
+      if [ "${PLATFORM}" = "SSC" ]; then
+        ${FCLI} ssc session login --url "${SSC_URL}" --token "${SSC_TOKEN}"
+        ${FCLI} aviator session login --url "${AVIATOR_URL}" --token "string:${AVIATOR_TOKEN}"
+        ${FCLI} aviator ssc apply-remediations --av "${SSC_APPVERSION}" --latest --progress=none
+      elif [ "${PLATFORM}" = "FoD" ]; then
+        ${FCLI} fod session login --url "${FOD_URL}" --client-id "${FOD_API_KEY}" --client-secret "${FOD_API_SECRET}"
+        ${FCLI} fod aviator apply-remediations --rel "${FOD_RELEASE}" --progress=none
+      else
+        echo "Unsupported PLATFORM value '${PLATFORM}'. Expected SSC or FoD."
+        exit 1
+      fi
+    - *git-push-mr

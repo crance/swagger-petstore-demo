@@ -1,0 +1,72 @@
+spec:
+  inputs:
+    fcli-version:
+      default: 'v3.17.0'
+      description: 'Fortify fcli version to use (for example: v3.17.0, v3.17, v3)'
+    ssc-version-name:
+      default: 'v3'
+      description: 'Existing SSC version name to copy before running audit/remediation'
+---
+
+include:
+  - component: $CI_SERVER_FQDN/Fortify/components/fcli/linux@2
+    inputs:
+      job-name: fcli
+      stage: prepare
+      fcli-version: $[[ inputs.fcli-version ]]
+
+stages: [prepare, audit]
+
+variables:
+  SSC_APPLICATION_NAME: petstore
+  SSC_SOURCE_APPVERSION: $[[ inputs.ssc-version-name ]]
+  SSC_VERSION_NAME: "$CI_COMMIT_REF_NAME-remediate-$CI_PIPELINE_ID"
+  SSC_APPVERSION: "$SSC_APPLICATION_NAME:$SSC_VERSION_NAME"
+  AVIATOR_APP: 'petstore'
+
+# NOTE:
+# This pipeline uses CI_JOB_TOKEN for Git push and MR creation (via push options).
+# To allow this, enable project setting:
+# Settings > CI/CD > Job token permissions > Allow Git push requests to the repository.
+
+.git-push-mr: &git-push-mr
+  - git config user.name "${GITLAB_USER_NAME:-gitlab-ci}"
+  - git config user.email "${GITLAB_USER_EMAIL:-gitlab-ci@example.com}"
+  - git checkout -b "aviator/remediate-${CI_PIPELINE_ID}"
+  - git add -A
+  - |
+    if git diff --cached --quiet; then
+      echo "No remediation changes detected; skipping commit/push/MR creation."
+      exit 0
+    fi
+    git commit -m "auto-remediation by OpenText SAST Aviator"
+    git push --set-upstream \
+      -o merge_request.create \
+      -o merge_request.target="${CI_DEFAULT_BRANCH}" \
+      -o merge_request.title="Remediation of security issues detected by OpenText SAST" \
+      -o merge_request.remove_source_branch \
+      "https://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git" \
+      "aviator/remediate-${CI_PIPELINE_ID}"
+
+fortify-audit:
+  stage: audit
+  image: maven:3-eclipse-temurin-21
+  needs:
+    - job: fcli-prepare
+      artifacts: true
+  script:
+    - ${FCLI} ssc session login --url "${SSC_URL}" --token "${SSC_TOKEN}"
+    - ${FCLI} aviator session login --url "${AVIATOR_URL}" --token "string:${AVIATOR_TOKEN}"
+    - ${FCLI} ssc appversion create --copy-from "${SSC_APPLICATION_NAME}:${SSC_SOURCE_APPVERSION}" --skip-if-exists "${SSC_APPVERSION}"
+    - |
+      ARTIFACT_ID=$(${FCLI} ssc artifact ls --av "${SSC_APPVERSION}" --output json |
+        jq -r '
+          sort_by(.uploadDate) | 
+          last | 
+          .id
+        ')
+      echo "Latest artifact ID: $ARTIFACT_ID"
+      ${FCLI} ssc artifact wait-for --progress=none $ARTIFACT_ID 
+    - ${FCLI} aviator ssc audit --av "${SSC_APPVERSION}" --app "${AVIATOR_APP}" --progress=none
+    - ${FCLI} aviator ssc apply-remediations --av "${SSC_APPVERSION}" --latest --progress=none
+    - *git-push-mr

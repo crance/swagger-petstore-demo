@@ -2,7 +2,7 @@ spec:
   inputs:
     fcli-version:
       default: 'v3.17.0'
-      description: 'Fortify fcli version for remediation workflow (for example: v3.17.0)'
+      description: 'Fortify fcli version for Fortify pipelines (for example: v3.17.0)'
     platform:
       default: 'SSC'
       description: 'Fortify platform to remediate (SSC or FoD)'
@@ -25,3 +25,13 @@ include:
     inputs:
       fcli-version: $[[ inputs.fcli-version ]]
       platform: $[[ inputs.platform ]]
+      ssc-version-name: $[[ inputs.ssc-version-name ]]
+      fod-release-name: $[[ inputs.fod-release-name ]]
+  - local: '.gitlab/ci/scan-audit-remediate.yml'
+    inputs:
+      fcli-version: $[[ inputs.fcli-version ]]
+      platform: $[[ inputs.platform ]]
+  - local: '.gitlab/ci/audit-remediate.yml'
+    inputs:
+      fcli-version: $[[ inputs.fcli-version ]]
+      ssc-version-name: $[[ inputs.ssc-version-name ]]

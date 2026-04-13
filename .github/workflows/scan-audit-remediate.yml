@@ -8,7 +8,7 @@ on:
         required: true
         type: choice
         default: SSC
-        options:
+        options: 
           - SSC
           - FoD
       fcli_version:
@@ -24,9 +24,11 @@ jobs:
       contents: write
       pull-requests: write
     env:
-      SSC_APPVERSION: '${{ vars.SSC_APPLICATION_NAME }}:${{ github.ref_name }}-remediate-${{ github.run_id }}'
-      FOD_RELEASE: '${{ vars.FOD_APPLICATION_NAME }}:${{ github.ref_name }}-remediate-${{ github.run_id }}'
-      AVIATOR_APP: ${{ vars.AVIATOR_APP_NAME }}
+      SSC_APPLICATION_NAME: 'petstore'
+      FOD_APPLICATION_NAME: 'petstore'
+      SSC_VERSION_NAME: '${{ github.ref_name }}-remediate-${{ github.run_id }}'
+      FOD_RELEASE_NAME: '${{ github.ref_name }}-remediate-${{ github.run_id }}'
+      AVIATOR_APP: 'petstore'
     # strategy:
     #   matrix:
     #     java: [ 21 ]
@@ -60,7 +62,7 @@ jobs:
           SSC_TOKEN: ${{ secrets.SSC_TOKEN }}
           SC_SAST_TOKEN: ${{ secrets.SC_SAST_TOKEN }}
           SSC_LOGIN_EXTRA_OPTS: --sc-sast-url ${{ secrets.SCSAST_URL }}
-          SSC_APPVERSION: ${{ env.SSC_APPVERSION }}
+          SSC_APPVERSION: ${{ format('{0}:{1}', env.SSC_APPLICATION_NAME, env.SSC_VERSION_NAME) }}
           SETUP_EXTRA_OPTS: '--issue-template "Prioritized High Risk Issue Template"' 
 
           PACKAGE_EXTRA_OPTS: --build-command "--no-transfer-progress"
@@ -111,11 +113,11 @@ jobs:
 
       - name: Apply remediations (SSC)
         if: ${{ inputs.platform == 'SSC' }}
-        run: fcli aviator ssc apply-remediations --av "$SSC_APPVERSION" --latest --progress=none
+        run: fcli aviator ssc apply-remediations --av "${{ env.SSC_APPLICATION_NAME }}:${{ env.SSC_VERSION_NAME }}" --latest --progress=none
 
       - name: Apply remediations (FoD)
         if: ${{ inputs.platform == 'FoD' }}
-        run: fcli fod aviator apply-remediations --rel "$FOD_RELEASE" --progress=none
+        run: fcli fod aviator apply-remediations --rel "${{ env.FOD_APPLICATION_NAME }}:${{ env.FOD_RELEASE_NAME }}" --progress=none
         
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
@@ -129,5 +131,5 @@ jobs:
             Remediation of security issues detected by OpenText SAST.
             This PR was automatically created by OpenText SAST Aviator.
             Platform: ${{ inputs.platform }}
-            Target: ${{ inputs.platform == 'SSC' && env.SSC_APPVERSION || env.FOD_RELEASE }}
+            Target: ${{ inputs.platform == 'SSC' && format('{0}:{1}', env.SSC_APPLICATION_NAME, env.SSC_VERSION_NAME) || format('{0}:{1}', env.FOD_APPLICATION_NAME, env.FOD_RELEASE_NAME) }}
             Please review carefully before merging.

@@ -8,6 +8,11 @@ on:
         required: true
         type: string
         default: 3.17.0
+      ssc_version_name:
+        description: SSC source version name
+        required: true
+        type: string
+        default: v3
 
 jobs:
   fortify-ast:
@@ -16,9 +21,10 @@ jobs:
       contents: write
       pull-requests: write
     env:
-      SSC_APPVERSION: '${{ vars.SSC_APPLICATION_NAME }}:${{ github.ref_name }}-remediate-${{ github.run_id }}'
-      SSC_SOURCE_APPVERSION: '${{ vars.SSC_APPLICATION_NAME }}:${{ vars.SSC_VERSION_NAME }}'
-      AVIATOR_APP: ${{ vars.AVIATOR_APP_NAME }}
+      SSC_APPLICATION_NAME: 'petstore'
+      SSC_VERSION_NAME: '${{ github.ref_name }}-remediate-${{ github.run_id }}'
+      SSC_SOURCE_APPVERSION: 'petstore:${{ inputs.ssc_version_name }}'
+      AVIATOR_APP: 'petstore'
     # strategy:
     #   matrix:
     #     java: [ 21 ]
@@ -55,11 +61,11 @@ jobs:
         run: fcli aviator session login --url ${{vars.AVIATOR_URL}} --token "string:${{secrets.AVIATOR_TOKEN}}"
 
       - name: Create app version in SSC
-        run: fcli ssc appversion create --copy-from "$SSC_SOURCE_APPVERSION" --skip-if-exists "$SSC_APPVERSION"
+        run: fcli ssc appversion create --copy-from "$SSC_SOURCE_APPVERSION" --skip-if-exists "${{ env.SSC_APPLICATION_NAME }}:${{ env.SSC_VERSION_NAME }}"
 
       - name: Wait for artifact processing
         run: |
-          ARTIFACT_ID=$(fcli ssc artifact ls --av "$SSC_APPVERSION" --output json |
+          ARTIFACT_ID=$(fcli ssc artifact ls --av "${{ env.SSC_APPLICATION_NAME }}:${{ env.SSC_VERSION_NAME }}" --output json |
             jq -r '
               sort_by(.uploadDate) | 
               last | 
@@ -69,10 +75,10 @@ jobs:
           fcli ssc artifact wait-for --progress=none $ARTIFACT_ID 
 
       - name: Aviator audit
-        run: fcli aviator ssc audit --av "$SSC_APPVERSION" --app "$AVIATOR_APP"
+        run: fcli aviator ssc audit --av "${{ env.SSC_APPLICATION_NAME }}:${{ env.SSC_VERSION_NAME }}" --app "$AVIATOR_APP"
 
       - name: Apply remediations
-        run: fcli aviator ssc apply-remediations --av "$SSC_APPVERSION" --latest --progress=none
+        run: fcli aviator ssc apply-remediations --av "${{ env.SSC_APPLICATION_NAME }}:${{ env.SSC_VERSION_NAME }}" --latest --progress=none
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
