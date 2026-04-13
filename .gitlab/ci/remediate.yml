@@ -3,6 +3,9 @@ spec:
     fcli-version:
       default: 'v3.17.0'
       description: 'Fortify fcli version to use (for example: v3.17.0, v3.17, v3)'
+    platform:
+      default: 'SSC'
+      description: 'Fortify platform to remediate (SSC or FoD)'
 ---
 
 include:
@@ -13,6 +16,9 @@ include:
       fcli-version: $[[ inputs.fcli-version ]]
 
 stages: [prepare, remediate]
+
+variables:
+  PLATFORM: $[[ inputs.platform ]]
 
 # NOTE:
 # This pipeline uses CI_JOB_TOKEN for Git push and MR creation (via push options).

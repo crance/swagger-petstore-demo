@@ -3,6 +3,9 @@ spec:
     fcli-version:
       default: 'v3.17.0'
       description: 'Fortify fcli version for remediation workflow (for example: v3.17.0)'
+    platform:
+      default: 'SSC'
+      description: 'Fortify platform to remediate (SSC or FoD)'
 ---
 workflow:
   rules:
@@ -15,3 +18,4 @@ include:
   - local: '.gitlab/ci/remediate.yml'
     inputs:
       fcli-version: $[[ inputs.fcli-version ]]
+      platform: $[[ inputs.platform ]]
