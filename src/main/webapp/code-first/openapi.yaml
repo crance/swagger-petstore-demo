@@ -17,8 +17,12 @@ info:
 externalDocs:
   description: Find out more about Swagger
   url: https://swagger.io
-servers:
-- url: /api/v31
+servers: # L20
+- url: /api/v31 # L21
+security:
+- petstore_auth:
+  - write:pets
+  - read:pets
 tags:
 - name: pet
   description: Everything about your Pets
@@ -264,8 +268,9 @@ components:
     petstore_auth:
       type: oauth2
       flows:
-        implicit:
+        authorizationCode:
           authorizationUrl: https://petstore31.swagger.io/oauth/authorize
+          tokenUrl: https://petstore31.swagger.io/oauth/token
           scopes:
             write:pets: modify pets in your account
             read:pets: read your pets
