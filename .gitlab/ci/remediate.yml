@@ -26,7 +26,7 @@ variables:
   SSC_APPLICATION_NAME: petstore
   SSC_VERSION_NAME: $[[ inputs.ssc-version-name ]]
   SSC_APPVERSION: "$SSC_APPLICATION_NAME:$SSC_VERSION_NAME"
-  FOD_APPLICATION_NAME: petstore
+  FOD_APPLICATION_NAME: Petstore
   FOD_RELEASE_NAME: $[[ inputs.fod-release-name ]]
   FOD_RELEASE: "$FOD_APPLICATION_NAME:$FOD_RELEASE_NAME"
 
@@ -56,7 +56,7 @@ variables:
 
 fortify-remediate:
   stage: remediate
-  image: maven:3-eclipse-temurin-21
+  image: registry.gitlab.com/gitlab-ci-utils/curl-jq:latest
   needs:
     - job: fcli-prepare
       artifacts: true
