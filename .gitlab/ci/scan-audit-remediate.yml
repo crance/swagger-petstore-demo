@@ -57,6 +57,7 @@ variables:
 fortify-ast-scan:
   image: maven:3-eclipse-temurin-21
   before_script:
+    # Fix for: FcliActionStepException: Only one of FOD_URL or SSC_URL environment variables may be set
     - |
       # Ensure Fortify CI action receives exactly one platform URL.
       if [ "${PLATFORM}" = "SSC" ]; then
@@ -68,10 +69,6 @@ fortify-ast-scan:
     - if: '$PLATFORM == "SSC"'
       when: on_success
       variables:
-        SSC_URL: $SSC_URL
-        SSC_TOKEN: $SSC_TOKEN
-        SC_SAST_TOKEN: $SC_SAST_TOKEN
-        SSC_APPVERSION: "$SSC_APPVERSION"
         SETUP_EXTRA_OPTS: '--issue-template "Prioritized High Risk Issue Template"'
         PACKAGE_EXTRA_OPTS: '--build-command "--no-transfer-progress"'
         
@@ -79,19 +76,14 @@ fortify-ast-scan:
         DO_SAST_EXPORT: false
 
         DO_AVIATOR_AUDIT: 'true'
-        AVIATOR_URL: $AVIATOR_URL
-        AVIATOR_TOKEN: $AVIATOR_TOKEN
-        AVIATOR_APP: $AVIATOR_APP
         # AVIATOR_AUDIT_EXTRA_OPTS: --folder "Critical,High" --progress=none
         AVIATOR_AUDIT_EXTRA_OPTS: --progress=none
         
     - if: '$PLATFORM == "FoD"'
       when: on_success
       variables:
-        FOD_URL: $FOD_URL
         FOD_CLIENT_ID: $FOD_API_KEY
         FOD_CLIENT_SECRET: $FOD_API_SECRET
-        FOD_RELEASE: "$FOD_RELEASE"
 
         PACKAGE_EXTRA_OPTS: '--build-command "--no-transfer-progress"'
 
