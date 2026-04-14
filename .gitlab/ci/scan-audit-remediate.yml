@@ -20,8 +20,6 @@ include:
       stage: scan
       fcli-version: $[[ inputs.fcli-version ]]
 
-stages: [prepare, scan, remediate]
-
 variables:
   PLATFORM: $[[ inputs.platform ]]
   SSC_APPLICATION_NAME: petstore

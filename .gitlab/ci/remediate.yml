@@ -21,8 +21,6 @@ include:
       stage: prepare
       fcli-version: $[[ inputs.fcli-version ]]
 
-stages: [prepare, remediate]
-
 variables:
   PLATFORM: $[[ inputs.platform ]]
   SSC_APPLICATION_NAME: petstore

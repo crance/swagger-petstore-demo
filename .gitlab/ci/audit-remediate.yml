@@ -15,8 +15,6 @@ include:
       stage: prepare
       fcli-version: $[[ inputs.fcli-version ]]
 
-stages: [prepare, audit]
-
 variables:
   SSC_APPLICATION_NAME: petstore
   SSC_SOURCE_APPVERSION: $[[ inputs.ssc-version-name ]]
