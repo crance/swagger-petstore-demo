@@ -69,6 +69,7 @@ fortify-ast-scan:
     - if: '$PLATFORM == "SSC"'
       when: on_success
       variables:
+        SSC_LOGIN_EXTRA_OPTS: --sc-sast-url $SCSAST_URL
         SETUP_EXTRA_OPTS: '--issue-template "Prioritized High Risk Issue Template"'
         PACKAGE_EXTRA_OPTS: '--build-command "--no-transfer-progress"'
         
