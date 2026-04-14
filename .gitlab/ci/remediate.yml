@@ -25,8 +25,10 @@ variables:
   PLATFORM: $[[ inputs.platform ]]
   SSC_APPLICATION_NAME: petstore
   SSC_VERSION_NAME: $[[ inputs.ssc-version-name ]]
+  SSC_APPVERSION: "$SSC_APPLICATION_NAME:$SSC_VERSION_NAME"
   FOD_APPLICATION_NAME: petstore
   FOD_RELEASE_NAME: $[[ inputs.fod-release-name ]]
+  FOD_RELEASE: "$FOD_APPLICATION_NAME:$FOD_RELEASE_NAME"
 
 # NOTE:
 # This pipeline uses CI_JOB_TOKEN for Git push and MR creation (via push options).
@@ -69,10 +71,10 @@ fortify-remediate:
       if [ "${PLATFORM}" = "SSC" ]; then
         ${FCLI} ssc session login --url "${SSC_URL}" --token "${SSC_TOKEN}"
         ${FCLI} aviator session login --url "${AVIATOR_URL}" --token "string:${AVIATOR_TOKEN}"
-        ${FCLI} aviator ssc apply-remediations --av "${SSC_APPLICATION_NAME}:${SSC_VERSION_NAME}" --latest --progress=none
+        ${FCLI} aviator ssc apply-remediations --av "${SSC_APPVERSION}" --latest --progress=none
       elif [ "${PLATFORM}" = "FoD" ]; then
         ${FCLI} fod session login --url "${FOD_URL}" --client-id "${FOD_API_KEY}" --client-secret "${FOD_API_SECRET}"
-        ${FCLI} fod aviator apply-remediations --rel "${FOD_APPLICATION_NAME}:${FOD_RELEASE_NAME}" --progress=none
+        ${FCLI} fod aviator apply-remediations --rel "${FOD_RELEASE}" --progress=none
       else
         echo "Unsupported PLATFORM value '${PLATFORM}'. Expected SSC or FoD."
         exit 1

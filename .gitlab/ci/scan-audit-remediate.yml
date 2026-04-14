@@ -72,10 +72,10 @@ fortify-ast-scan:
         SETUP_EXTRA_OPTS: '--issue-template "Prioritized High Risk Issue Template"'
         PACKAGE_EXTRA_OPTS: '--build-command "--no-transfer-progress"'
         
-        DO_APPVERSION_SUMMARY: 'false'
+        DO_APPVERSION_SUMMARY: false
         DO_SAST_EXPORT: false
 
-        DO_AVIATOR_AUDIT: 'true'
+        DO_AVIATOR_AUDIT: true
         # AVIATOR_AUDIT_EXTRA_OPTS: --folder "Critical,High" --progress=none
         AVIATOR_AUDIT_EXTRA_OPTS: --progress=none
         
@@ -90,7 +90,7 @@ fortify-ast-scan:
         DO_RELEASE_SUMMARY: false
         DO_SAST_EXPORT: false
 
-        DO_AVIATOR_AUDIT: 'true'
+        DO_AVIATOR_AUDIT: true
     - when: never
 
 apply-remediations:
