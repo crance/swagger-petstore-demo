@@ -56,6 +56,14 @@ variables:
 
 fortify-ast-scan:
   image: maven:3-eclipse-temurin-21
+  before_script:
+    - |
+      # Ensure Fortify CI action receives exactly one platform URL.
+      if [ "${PLATFORM}" = "SSC" ]; then
+        unset FOD_URL
+      elif [ "${PLATFORM}" = "FoD" ]; then
+        unset SSC_URL
+      fi
   rules:
     - if: '$PLATFORM == "SSC"'
       when: on_success
