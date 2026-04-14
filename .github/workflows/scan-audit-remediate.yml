@@ -25,7 +25,7 @@ jobs:
       pull-requests: write
     env:
       SSC_APPLICATION_NAME: 'petstore'
-      FOD_APPLICATION_NAME: 'petstore'
+      FOD_APPLICATION_NAME: 'Petstore'
       SSC_VERSION_NAME: '${{ github.ref_name }}-remediate-${{ github.run_id }}'
       FOD_RELEASE_NAME: '${{ github.ref_name }}-remediate-${{ github.run_id }}'
       AVIATOR_APP: 'petstore'
