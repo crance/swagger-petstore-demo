@@ -199,9 +199,11 @@ public class PetResource {
         try {
             petData.addPet(pet);
         } catch (Exception e) {
-            System.err.println("ERROR " + e.getMessage());
-            e.printStackTrace();
-            throw new WebApplicationException("Unexpected error", e);
+            // Log the exception internally for debugging purposes
+            // Consider using a proper logging framework like SLF4J instead
+            System.err.println("ERROR updating pet: " + e.getMessage());
+            // Do not expose internal exception details to the client
+            throw new WebApplicationException("Unexpected error occurred while updating pet", Response.Status.INTERNAL_SERVER_ERROR);
         }
         return Response.ok().entity(pet).build();
     }
