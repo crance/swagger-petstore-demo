@@ -12,3 +12,8 @@ atlassian-ide-plugin.xml
 .java-version
 dependency-reduced-pom.xml
 *.pyc
+*.log
+
+# Fortify reusable component runtime artifacts)
+fortify/fcli/tools/
+fortify/fortify-ast-scan/data/

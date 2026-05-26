@@ -1,0 +1,62 @@
+spec:
+  inputs:
+    fcli-version:
+      default: 'v3.17.0'
+      description: 'Fortify fcli version for Fortify pipelines (for example: v3.17.0)'
+    platform:
+      default: 'SSC'
+      options:
+        - 'SSC'
+        - 'FoD'
+      description: 'Fortify platform to remediate (SSC or FoD)'
+    ssc-version-name:
+      default: 'v3'
+      description: 'SSC version name (optional override)'
+    fod-release-name:
+      default: 'v3'
+      description: 'FoD release name (optional override)'
+    workflow:
+      default: 'scan-audit-remediate'
+      options:
+        - 'remediate'
+        - 'scan-audit-remediate'
+        - 'audit-remediate'
+      description: 'Fortify workflow to run (remediate, scan-audit-remediate, audit-remediate)'
+---
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+    - if: '$CI_PIPELINE_SOURCE == "api"'
+    - if: '$CI_PIPELINE_SOURCE == "trigger"'
+    - when: never
+
+stages:
+  - prepare
+  - scan
+  - audit
+  - remediate
+
+include:
+  - local: '.gitlab/ci/remediate.yml'
+    rules:
+      - if: '"$[[ inputs.workflow ]]" == "remediate"'
+      - when: never
+    inputs:
+      fcli-version: $[[ inputs.fcli-version ]]
+      platform: $[[ inputs.platform ]]
+      ssc-version-name: $[[ inputs.ssc-version-name ]]
+      fod-release-name: $[[ inputs.fod-release-name ]]
+  - local: '.gitlab/ci/scan-audit-remediate.yml'
+    rules:
+      - if: '"$[[ inputs.workflow ]]" == "scan-audit-remediate"'
+      - when: never
+    inputs:
+      fcli-version: $[[ inputs.fcli-version ]]
+      platform: $[[ inputs.platform ]]
+  - local: '.gitlab/ci/audit-remediate.yml'
+    rules:
+      - if: '"$[[ inputs.workflow ]]" == "audit-remediate" && "$[[ inputs.platform ]]" == "SSC"'
+      - when: never
+    inputs:
+      fcli-version: $[[ inputs.fcli-version ]]
+      ssc-version-name: $[[ inputs.ssc-version-name ]]
