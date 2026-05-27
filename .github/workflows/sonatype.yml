@@ -133,7 +133,12 @@ jobs:
           result-file: evaluation-result
           upload-sarif-file: true
           enable-reachability: true
-
+      
+  sonatype-ssc-synchronization:
+    name: Synchronize
+    needs: sonatype-sca
+    runs-on: self-hosted
+    steps:
       - name: Setup Fortify tools
         uses: fortify/github-action/setup@v2
         with:
@@ -148,12 +153,6 @@ jobs:
       - name: Create app version in SSC
         run: fcli ssc appversion create --skip-if-exists "${{ env.SSC_APPLICATION_NAME }}:${{ env.SSC_VERSION_NAME }}"
 
-      
-  sonatype-ssc-synchronization:
-    name: Synchronize
-    needs: sonatype-sca
-    runs-on: self-hosted
-    steps:
       - name: Upload to SSC
         shell: bash
         run: |
