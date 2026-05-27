@@ -69,7 +69,11 @@ jobs:
           echo "=== Test unauthenticated ==="
           curl -o /dev/null -s -w "%{http_code}" "https://nexusrepo.crance.me/repository/maven-public/"
           echo ""
-          echo "=== Test authenticated ==="
+          echo "=== Test unauthenticated ==="
+          curl -u "${{ secrets.NEXUS_IQ_USERNAME }}:${{ secrets.NEXUS_IQ_PASSWORD }}" \
+            -o /dev/null -s -w "%{http_code}" \
+            "${{ secrets.NEXUS_REPO_URL }}/maven-public/org/apache/maven/plugins/maven-failsafe-plugin/3.0.0/maven-failsafe-plugin-3.0.0.pom"
+          echo ""
           curl -u "${{ secrets.NEXUS_IQ_USERNAME }}:${{ secrets.NEXUS_IQ_PASSWORD }}" \
             -o /dev/null -s -w "%{http_code}" \
             "${{ secrets.NEXUS_REPO_URL }}/maven-public/org/apache/maven/plugins/maven-failsafe-plugin/3.0.0/maven-failsafe-plugin-3.0.0.pom"
