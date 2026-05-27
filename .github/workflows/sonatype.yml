@@ -49,14 +49,14 @@ jobs:
               <mirror>
                 <id>nexus</id>
                 <mirrorOf>*</mirrorOf>
-                <url>https://nexusrepo.crance.me/repository/maven-public/</url>
+                <url>${{ secrets.NEXUS_REPO_URL }}/maven-public/</url>
               </mirror>
             </mirrors>
             <servers>
               <server>
                 <id>nexus</id>
-                <username>${{ secrets.NEXUS_IQ_USERNAME }}</username>
-                <password>${{ secrets.NEXUS_IQ_PASSWORD }}</password>
+                <username>${{ secrets.NEXUS_REPO_USERNAME }}</username>
+                <password>${{ secrets.NEXUS_REPO_PASSWORD }}</password>
               </server>
             </servers>
           </settings>
@@ -67,21 +67,21 @@ jobs:
           echo "=== Settings (redacted) ==="
           cat ~/.m2/settings.xml | sed 's/<password>.*<\/password>/<password>REDACTED<\/password>/'
           echo "=== Test unauthenticated ==="
-          curl -o /dev/null -s -w "%{http_code}" "https://nexusrepo.crance.me/repository/maven-public/"
+          curl -o /dev/null -s -w "%{http_code}" "${{ secrets.NEXUS_REPO_URL }}/maven-public/"
           echo ""
           echo "=== Test unauthenticated ==="
-          curl -u "${{ secrets.NEXUS_IQ_USERNAME }}:${{ secrets.NEXUS_IQ_PASSWORD }}" \
+          curl -u "${{ secrets.NEXUS_REPO_USERNAME }}:${{ secrets.NEXUS_REPO_PASSWORD }}" \
             -o /dev/null -s -w "%{http_code}" \
             "${{ secrets.NEXUS_REPO_URL }}/maven-public/org/apache/maven/plugins/maven-failsafe-plugin/3.0.0/maven-failsafe-plugin-3.0.0.pom"
           echo ""
-          curl -u "${{ secrets.NEXUS_IQ_USERNAME }}:${{ secrets.NEXUS_IQ_PASSWORD }}" \
+          curl -u "${{ secrets.NEXUS_REPO_USERNAME }}:${{ secrets.NEXUS_REPO_PASSWORD }}" \
             -o /dev/null -s -w "%{http_code}" \
             "${{ secrets.NEXUS_REPO_URL }}/maven-public/org/apache/maven/plugins/maven-failsafe-plugin/3.0.0/maven-failsafe-plugin-3.0.0.pom"
           echo ""
           echo "=== Final destination (follow redirects) ==="
-          curl -L -u "${{ secrets.NEXUS_IQ_USERNAME }}:${{ secrets.NEXUS_IQ_PASSWORD }}" \
+          curl -L -u "${{ secrets.NEXUS_REPO_USERNAME }}:${{ secrets.NEXUS_REPO_PASSWORD }}" \
             -o /dev/null -s -w "HTTP %{http_code} → %{url_effective}\n" \
-            "https://nexusrepo.crance.me/repository/maven-public/"
+            "${{ secrets.NEXUS_REPO_URL }}/maven-public/"
 
       # - name: Build with Maven
       #   run: |
