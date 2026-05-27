@@ -40,27 +40,43 @@ jobs:
         run: |
           mvn --no-transfer-progress -B install --file pom.xml
 
-      - name: Write Maven settings
-        run: |
-          mkdir -p ~/.m2
-          cat > ~/.m2/settings.xml <<EOF
-          <settings>
-            <mirrors>
-              <mirror>
-                <id>nexus</id>
-                <mirrorOf>*</mirrorOf>
-                <url>${{ secrets.NEXUS_REPO_URL }}/maven-public/</url>
-              </mirror>
-            </mirrors>
-            <servers>
-              <server>
-                <id>nexus</id>
-                <username>${{ secrets.NEXUS_REPO_USERNAME }}</username>
-                <password>${{ secrets.NEXUS_REPO_PASSWORD }}</password>
-              </server>
-            </servers>
-          </settings>
-          EOF
+      # - name: Write Maven settings
+      #   run: |
+      #     mkdir -p ~/.m2
+      #     cat > ~/.m2/settings.xml <<EOF
+      #     <settings>
+      #       <mirrors>
+      #         <mirror>
+      #           <id>nexus</id>
+      #           <mirrorOf>*</mirrorOf>
+      #           <url>${{ secrets.NEXUS_REPO_URL }}/maven-public/</url>
+      #         </mirror>
+      #       </mirrors>
+      #       <servers>
+      #         <server>
+      #           <id>nexus</id>
+      #           <username>${{ secrets.NEXUS_REPO_USERNAME }}</username>
+      #           <password>${{ secrets.NEXUS_REPO_PASSWORD }}</password>
+      #         </server>
+      #       </servers>
+      #     </settings>
+      #     EOF
+
+      - name: Configure Maven Settings
+        uses: s4u/maven-settings-action@v4.0.0
+        with:
+          servers: |
+            [{
+              "id": "nexus",
+              "username": "${{ secrets.NEXUS_REPO_USERNAME }}",
+              "password": "${{ secrets.NEXUS_REPO_PASSWORD }}"
+            }]
+          mirrors: |
+            [{
+              "id": "nexus",
+              "mirrorOf": "*",
+              "url": "${{ secrets.NEXUS_REPO_URL }}/maven-public/"
+            }]
 
       - name: Build with Maven
         run: |
