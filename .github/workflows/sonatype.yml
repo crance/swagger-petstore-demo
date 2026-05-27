@@ -49,7 +49,7 @@ jobs:
               <mirror>
                 <id>nexus</id>
                 <mirrorOf>*</mirrorOf>
-                <url>${{ secrets.NEXUS_REPO_URL }}/maven-public/</url>
+                <url>https://nexusrepo.crance.me/repository/maven-public/</url>
               </mirror>
             </mirrors>
             <servers>
@@ -61,6 +61,19 @@ jobs:
             </servers>
           </settings>
           EOF
+
+      - name: Verify Nexus connectivity
+        run: |
+          echo "=== Settings (redacted) ==="
+          cat ~/.m2/settings.xml | sed 's/<password>.*<\/password>/<password>REDACTED<\/password>/'
+          echo "=== Test unauthenticated ==="
+          curl -o /dev/null -s -w "%{http_code}" "${{ secrets.NEXUS_REPO_URL }}/maven-public/"
+          echo ""
+          echo "=== Test authenticated ==="
+          curl -u "${{ secrets.NEXUS_IQ_USERNAME }}:${{ secrets.NEXUS_IQ_PASSWORD }}" \
+            -o /dev/null -s -w "%{http_code}" \
+            "${{ secrets.NEXUS_REPO_URL }}/maven-public/org/apache/maven/plugins/maven-failsafe-plugin/3.0.0/maven-failsafe-plugin-3.0.0.pom"
+          echo ""
 
       # - name: Build with Maven
       #   run: |
@@ -104,13 +117,13 @@ jobs:
           java-version: 21
           distribution: temurin
 
-      - name: Cache local Maven repository
-        uses: actions/cache@v4
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-# Set up build tool(s) required to build your project
+      # - name: Cache local Maven repository
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: ~/.m2/repository
+      #     key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+      #     restore-keys: |
+      #       ${{ runner.os }}-maven-
 
       - name: Download target folder
         uses: actions/download-artifact@v4
