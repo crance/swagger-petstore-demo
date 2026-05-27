@@ -16,10 +16,6 @@ on:
         required: false
         default: 'build'
 
-env:
-  MAVEN_OPTS: "-Dmaven.repo.remote=${{ secrets.NEXUS_REPO_URL }}/maven-public/ \
-                   -Dmaven.wagon.http.ssl.insecure=false"
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -43,9 +39,37 @@ jobs:
       # - name: Build with Maven
       #   run: |
       #     mvn --no-transfer-progress -B install --file pom.xml
+
+      - name: Write Maven settings
+        run: |
+          mkdir -p ~/.m2
+          cat > ~/.m2/settings.xml <<EOF
+          <settings>
+            <mirrors>
+              <mirror>
+                <id>nexus</id>
+                <mirrorOf>*</mirrorOf>
+                <url>${{ secrets.NEXUS_REPO_URL }}/maven-public/</url>
+              </mirror>
+            </mirrors>
+            <servers>
+              <server>
+                <id>nexus</id>
+                <username>${{ secrets.NEXUS_IQ_USERNAME }}</username>
+                <password>${{ secrets.NEXUS_IQ_PASSWORD }}</password>
+              </server>
+            </servers>
+          </settings>
+          EOF
+
+      # - name: Build with Maven
+      #   run: |
+      #     mvn -B install --file pom.xml
+
+      # Force update from maven
       - name: Build with Maven
         run: |
-          mvn -B install --file pom.xml
+          mvn -U -B install --file pom.xml
 
       - name: Upload target folder
         uses: actions/upload-artifact@v4
