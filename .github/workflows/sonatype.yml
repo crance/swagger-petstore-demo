@@ -104,5 +104,5 @@ jobs:
             ./**/target/*.war 
             ./src/main/resources/**/*.js 
           result-file: evaluation-result
-          upload-sarif-file: true
+          upload-sarif-file: false
           enable-reachability: true
