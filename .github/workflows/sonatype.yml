@@ -67,13 +67,17 @@ jobs:
           echo "=== Settings (redacted) ==="
           cat ~/.m2/settings.xml | sed 's/<password>.*<\/password>/<password>REDACTED<\/password>/'
           echo "=== Test unauthenticated ==="
-          curl -o /dev/null -s -w "%{http_code}" "${{ secrets.NEXUS_REPO_URL }}/maven-public/"
+          curl -o /dev/null -s -w "%{http_code}" "https://nexusrepo.crance.me/repository/maven-public/"
           echo ""
           echo "=== Test authenticated ==="
           curl -u "${{ secrets.NEXUS_IQ_USERNAME }}:${{ secrets.NEXUS_IQ_PASSWORD }}" \
             -o /dev/null -s -w "%{http_code}" \
             "${{ secrets.NEXUS_REPO_URL }}/maven-public/org/apache/maven/plugins/maven-failsafe-plugin/3.0.0/maven-failsafe-plugin-3.0.0.pom"
           echo ""
+          echo "=== Final destination (follow redirects) ==="
+          curl -L -u "${{ secrets.NEXUS_IQ_USERNAME }}:${{ secrets.NEXUS_IQ_PASSWORD }}" \
+            -o /dev/null -s -w "HTTP %{http_code} → %{url_effective}\n" \
+            "https://nexusrepo.crance.me/repository/maven-public/"
 
       # - name: Build with Maven
       #   run: |
