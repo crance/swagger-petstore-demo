@@ -68,6 +68,7 @@ jobs:
           servers: |
             [{
               "id": "nexus",
+              "name": "Nexus Repository Manager",
               "username": "${{ secrets.NEXUS_REPO_USERNAME }}",
               "password": "${{ secrets.NEXUS_REPO_PASSWORD }}"
             }]
