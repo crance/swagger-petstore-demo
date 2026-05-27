@@ -57,6 +57,8 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+      actions: read
+      security-events: write
     env:
       SSC_APPLICATION_NAME: 'petstore'
       SSC_VERSION_NAME: 'petstore:${{ inputs.ssc_version_name }}'
@@ -104,5 +106,5 @@ jobs:
             ./**/target/*.war 
             ./src/main/resources/**/*.js 
           result-file: evaluation-result
-          upload-sarif-file: false
+          upload-sarif-file: true
           enable-reachability: true
