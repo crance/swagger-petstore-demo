@@ -1,0 +1,108 @@
+name: Software Composition Analysis
+
+on:
+  workflow_dispatch:
+    inputs:
+      ssc_version_name:
+        description: SSC source version name
+        required: true
+        type: string
+        default: sonatype
+      nexusiq_appid:
+        description: 'Nexus App Id'
+        default: 'swagger-petstore-demo__crance'
+      nexusiq_stage:
+        description: 'Nexus IQ stage (optional)'
+        required: false
+        default: 'build'
+
+env:
+  MAVEN_OPTS: "-Dmaven.repo.remote=${{ secrets.NEXUS_REPO_URL }}/maven-public/ \
+                   -Dmaven.wagon.http.ssl.insecure=false"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:    
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          # java-version: ${{ matrix.java }}
+          java-version: 21
+          distribution: temurin
+      - name: Cache local Maven repository
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+      - name: Build with Maven
+        run: |
+          mvn --no-transfer-progress -B install --file pom.xml
+
+      - name: Upload target folder
+        uses: actions/upload-artifact@v4
+        with:
+          name: maven-target
+          path: target/
+          retention-days: 1  
+
+  sonatype-sca:
+    needs: [build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      SSC_APPLICATION_NAME: 'petstore'
+      SSC_VERSION_NAME: 'petstore:${{ inputs.ssc_version_name }}'
+
+      NEXUSIQ_APPID: ${{ github.event.inputs.nexusiq_appid }}
+      NEXUSIQ_STAGE: ${{ github.event.inputs.nexusiq_stage || 'build' }}
+
+    steps:    
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          # java-version: ${{ matrix.java }}
+          java-version: 21
+          distribution: temurin
+
+      - name: Cache local Maven repository
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-# Set up build tool(s) required to build your project
+
+      - name: Download target folder
+        uses: actions/download-artifact@v4
+        with:
+          name: maven-target
+          path: target/
+
+      - name: Software Composition Analysis
+        id: evaluate
+        uses: sonatype/actions/evaluate@v1
+        with:
+          iq-server-url: ${{ secrets.NEXUS_IQ_URL }}
+          username: ${{ secrets.NEXUS_IQ_USERNAME }}
+          password: ${{ secrets.NEXUS_IQ_PASSWORD }}
+          application-id: ${{ env.NEXUSIQ_APPID }}
+          stage: ${{ env.NEXUSIQ_STAGE }}
+          # scan-targets: pom.xml
+          scan-targets: >
+            ./**/target/*.jar 
+            ./**/target/*.war 
+            ./src/main/resources/**/*.js 
+          result-file: evaluation-result
+          upload-sarif-file: true
+          enable-reachability: true
