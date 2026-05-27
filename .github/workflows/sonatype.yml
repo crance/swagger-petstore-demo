@@ -1,0 +1,168 @@
+name: Software Composition Analysis
+
+on:
+  workflow_dispatch:
+    inputs:
+      fcli_version:
+        description: fcli version
+        required: true
+        type: string
+        default: 3.18.0
+      ssc_version_name:
+        description: SSC source version name
+        required: true
+        type: string
+        default: sonatype
+      nexusiq_appid:
+        description: 'Nexus App Id'
+        default: 'swagger-petstore-demo__crance'
+      nexusiq_stage:
+        description: 'Nexus IQ stage (optional)'
+        required: false
+        default: 'build'
+
+env:
+  SSC_APPLICATION_NAME: 'petstore'
+  SSC_VERSION_NAME: '${{ inputs.ssc_version_name }}'
+
+  NEXUSIQ_APPID: ${{ github.event.inputs.nexusiq_appid }}
+  NEXUSIQ_STAGE: ${{ github.event.inputs.nexusiq_stage || 'build' }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:    
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          # java-version: ${{ matrix.java }}
+          java-version: 21
+          distribution: temurin
+      - name: Cache local Maven repository
+        uses: actions/cache@v5
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: Configure Maven Settings
+        uses: s4u/maven-settings-action@v4.0.0
+        with:
+          servers: |
+            [{
+              "id": "nexus",
+              "username": "${{ secrets.NEXUS_REPO_USERNAME }}",
+              "password": "${{ secrets.NEXUS_REPO_PASSWORD }}"
+            }]
+          mirrors: |
+            [{
+              "id": "nexus",
+              "name": "Nexus Repository Manager",
+              "mirrorOf": "*",
+              "url": "${{ secrets.NEXUS_REPO_URL }}/maven-public/"
+            }]
+
+
+      # - name: Build with Maven
+      #   run: |
+      #     mvn --no-transfer-progress -B install --file pom.xml
+
+      - name: Build with Maven
+        run: |
+          mvn -B install --file pom.xml
+
+      - name: Upload target folder
+        uses: actions/upload-artifact@v5
+        with:
+          name: maven-target
+          path: target/
+          retention-days: 1  
+
+  sonatype-sca:
+    needs: [build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: read
+      security-events: write
+
+    steps:    
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          # java-version: ${{ matrix.java }}
+          java-version: 21
+          distribution: temurin
+
+      - name: Cache local Maven repository
+        uses: actions/cache@v5
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: Download target folder
+        uses: actions/download-artifact@v5
+        with:
+          name: maven-target
+          path: target/
+
+      - name: Software Composition Analysis
+        id: evaluate
+        uses: sonatype/actions/evaluate@v1
+        with:
+          iq-server-url: ${{ secrets.NEXUS_IQ_URL }}
+          username: ${{ secrets.NEXUS_IQ_USERNAME }}
+          password: ${{ secrets.NEXUS_IQ_PASSWORD }}
+          application-id: ${{ env.NEXUSIQ_APPID }}
+          stage: ${{ env.NEXUSIQ_STAGE }}
+          # scan-targets: pom.xml
+          scan-targets: >
+            ./**/target/*.jar 
+            ./**/target/*.war 
+            ./src/main/resources/**/*.js 
+          result-file: evaluation-result
+          upload-sarif-file: true
+          enable-reachability: true
+
+      - name: Setup Fortify tools
+        uses: fortify/github-action/setup@v2
+        with:
+          fcli: ${{ inputs.fcli_version }}
+      
+      - name: SSC session login
+        run: fcli ssc session login --url ${{secrets.SSC_URL}} --token "${{secrets.SSC_TOKEN}}"
+
+      - name: Aviator session login
+        run: fcli aviator session login --url ${{vars.AVIATOR_URL}} --token "string:${{secrets.AVIATOR_TOKEN}}"
+
+      - name: Create app version in SSC
+        run: fcli ssc appversion create --skip-if-exists "${{ env.SSC_APPLICATION_NAME }}:${{ env.SSC_VERSION_NAME }}"
+
+      
+  sonatype-ssc-synchronization:
+    name: Synchronize
+    needs: sonatype-sca
+    runs-on: self-hosted
+    steps:
+      - name: Upload to SSC
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -sS "${{ secrets.FORTIFY_SONATYPE_INTEGRATION_SERVICE_URL }}/startScanLoad" \
+            --get \
+            --data-urlencode "sonatypeProject=${{ env.NEXUSIQ_APPID }}" \
+            --data-urlencode "sonatypeProjectStage=${{ env.NEXUSIQ_STAGE }}" \
+            --data-urlencode "fortifyApplication=${{ env.SSC_APPLICATION_NAME }}" \
+            --data-urlencode "fortifyApplicationVersion=${{ env.SSC_VERSION_NAME }}" \
+            --data-urlencode "forceUpload=true" \
+            --data-urlencode "overwrite=true"
