@@ -66,6 +66,7 @@ jobs:
           SETUP_EXTRA_OPTS: '--issue-template "Prioritized High Risk Issue Template"' 
 
           PACKAGE_EXTRA_OPTS: --build-command "--no-transfer-progress"
+          SC_CLIENT_VERSION: 25.4
 
           DO_APPVERSION_SUMMARY: false
           DO_SAST_EXPORT: false
